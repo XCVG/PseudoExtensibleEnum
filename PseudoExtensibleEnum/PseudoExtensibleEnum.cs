@@ -1,175 +1,208 @@
-﻿using System;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-//no idea if ANY of this is correct but the theory:
-// [PseudoExtensibleEnum] on the base enum
-// [PseudoExtendEnum] on enums that extend the base enum
-// actual places where you need to store values will be backing-type (usually or always int)
-// but we can utilize this data in custom json converter etc
-// will probably provide a convenience method like InterpretEnum(string val) that does magic lookup (or just parses number)
-// custom converter will always store as number (since preserving nice name isn't critical and we can always round trip it) 
-
-[AttributeUsage(AttributeTargets.Enum)]
-public class PseudoExtensibleAttribute : Attribute
+namespace PseudoExtensibleEnum
 {
-
-}
-
-[AttributeUsage(AttributeTargets.Enum)]
-public class PseudoExtendAttribute : Attribute
-{
-    public Type BaseType { get; private set; }
-
-    public PseudoExtendAttribute(Type baseType)
+    [AttributeUsage(AttributeTargets.Enum)]
+    public class PseudoExtensibleAttribute : Attribute
     {
-        BaseType = baseType;
-    }
-}
 
-//base/util class, maybe base of container class
-public class PEnum
-{
-
-    private static Dictionary<Type, Type[]> EnumExtensionCache;
-
-    static PEnum()
-    {
-        RefreshCaches();
     }
 
-    public static void RefreshCaches()
+    [AttributeUsage(AttributeTargets.Enum)]
+    public class PseudoExtendAttribute : Attribute
     {
-        var allTypes = AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(a => a.GetTypes());
+        public Type BaseType { get; private set; }
 
-        RefreshCaches(allTypes);
-    }
-
-    public static void RefreshCaches(IEnumerable<Type> allTypes)
-    {
-        EnumExtensionCache = new Dictionary<Type, Type[]>();
-
-        var baseTypes = allTypes
-            .Where(t => t.IsEnum)
-            .Where(t => t.GetCustomAttribute<PseudoExtensibleAttribute>() != null);
-
-        foreach(var baseType in baseTypes)
+        public PseudoExtendAttribute(Type baseType)
         {
-            var extendedTypes = allTypes
-                .Where(t => t.IsEnum)
-                .Where(t =>
+            BaseType = baseType;
+        }
+    }
+
+    public static class PxEnum
+    {
+
+        //similar API to Enum static methods
+
+        public static string GetName(Type enumType, object value)
+        {
+            ThrowIfTypeInvalid(enumType);
+
+            var baseResult = Enum.GetName(enumType, value);
+            if(baseResult != null)
+                return baseResult;
+
+            var extensions = GetPseudoExtensionsToEnum(enumType);
+            foreach(var eType in extensions)
+            {
+                var eResult = Enum.GetName(eType, value);
+                if (eResult != null)
+                    return eResult;
+            }
+
+            return null;
+        }
+
+        public static string[] GetNames(Type enumType)
+        {
+            ThrowIfTypeInvalid(enumType);
+
+            HashSet<string> names = new HashSet<string>();
+
+            names.UnionWith(Enum.GetNames(enumType));
+
+            var extensions = GetPseudoExtensionsToEnum(enumType);
+            foreach (var eType in extensions)
+            {
+                names.UnionWith(Enum.GetNames(eType));
+            }
+
+            return names.ToArray();
+        }
+
+        public static Array GetValues(Type enumType)
+        {
+            ThrowIfTypeInvalid(enumType);
+
+            var underlyingType = Enum.GetUnderlyingType(enumType);
+            IList values = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(underlyingType));
+
+            var baseValues = Enum.GetValues(enumType);
+            for(int i = 0; i < baseValues.Length; i++)
+            {
+                values.Add(baseValues.GetValue(i));
+            }
+
+            var extensions = GetPseudoExtensionsToEnum(enumType);
+            foreach (var eType in extensions)
+            {
+                var eValues = Enum.GetValues(eType);
+                for (int i = 0; i < eValues.Length; i++)
                 {
-                    var attr = t.GetCustomAttribute<PseudoExtendAttribute>();
-                    if (attr == null)
-                        return false;
-                    return attr.BaseType == baseType;
-                })
-                .ToArray();
+                    values.Add(eValues.GetValue(i));
+                }
+            }
 
-            EnumExtensionCache.Add(baseType, extendedTypes);
-        }
-    }
+            Array valuesArray = Array.CreateInstance(underlyingType, values.Count);
+            for(int i = 0; i < values.Count; i++)
+            {
+                valuesArray.SetValue(values[i], i); 
+            }
 
-    public static IEnumerable<Type> GetExtensionsForType(Type type)
-    {
-        if (!type.IsEnum)
-            throw new ArgumentException($"Type {type?.Name} must be an enum", nameof(type));
-
-        return EnumExtensionCache[type];
-    }
-
-    public static string Format(Type enumType, object value, string format)
-    {
-        throw new NotImplementedException();
-    }
-
-    public static string GetName(Type enumType, object value)
-    {
-        throw new NotImplementedException();
-    }
-
-    public static string[] GetNames(Type enumType)
-    {
-        throw new NotImplementedException();
-    }
-
-    public static Array GetValues(Type enumType)
-    {
-        throw new NotImplementedException();
-    }
-
-    /// <summary>
-    /// Parses a string or numeric-as-string value 
-    /// </summary>
-    public static object ParseToValue(Type type, string value, bool ignoreCase)
-    {
-        if (!type.IsEnum)
-            throw new ArgumentException($"Type {type?.Name} must be an enum", nameof(type));
-
-        var nType = Enum.GetUnderlyingType(type);
-
-        if (long.TryParse(value, out long lValue))
-        {            
-            return Convert.ChangeType(lValue, nType);
-            //TODO should this be checked against valid extensible values?
+            return valuesArray;
         }
 
-        if (TryParseEnum(type, value, ignoreCase, out var bResult))
-            return Convert.ChangeType(bResult, nType);
-
-        foreach(var eType in GetExtensionsForType(type))
+        public static bool IsDefined(Type enumType, object value)
         {
-            if (TryParseEnum(eType, value, ignoreCase, out var eResult))
-                return Convert.ChangeType(Convert.ChangeType(eResult, Enum.GetUnderlyingType(eType)), nType);
+            ThrowIfTypeInvalid(enumType);
+
+            if (Enum.IsDefined(enumType, value))
+                return true;
+
+            var extensions = GetPseudoExtensionsToEnum(enumType);
+            foreach (var eType in extensions)
+            {
+                if (Enum.IsDefined(eType, value))
+                    return true;
+            }
+
+            return false;
         }
 
-        throw new ArgumentException($"Value {value} is not valid for enum {type?.Name} or any of its pseudoextensions", nameof(value));
-    }
-
-    public static object ParseToEnum(Type type, string value, bool ignoreCase)
-    {
-        object rValue = ParseToValue(type, value, ignoreCase);
-        //TODO should this be checked against valid extensible values?
-        return Enum.ToObject(type, rValue);
-    }
-
-    //TODO generic and ParseToContainer
-
-    private static bool TryParseEnum(Type type, string value, bool ignoreCase, out object result)
-    {
-        //this is a dumb way of doing it but should work
-        try
+        public static object Parse(Type enumType, string value)
         {
-            result = Enum.Parse(type, value, ignoreCase);
-            return true;
+            return Parse(enumType, value, true);
         }
-        catch
+
+        public static object Parse(Type enumType, string value, bool ignoreCase)
         {
+            if(TryParseInternal(enumType, value, ignoreCase, out object result))
+            {
+                return result;
+            }
 
+            throw new ArgumentException();
         }
-        result = null;
-        return false;
+
+        public static bool TryParse<TEnum>(string value, out TEnum result) where TEnum : struct
+        {
+            return TryParse(value, true, out result);
+        }
+
+        public static bool TryParse<TEnum>(string value, bool ignoreCase, out TEnum result) where TEnum : struct
+        {
+            if(TryParseInternal(typeof(TEnum), value, ignoreCase, out object rawResult))
+            {
+                result = (TEnum)rawResult;
+                return true;
+            }
+
+            result = default;
+            return false;
+        }
+
+        private static bool TryParseInternal(Type enumType, string value, bool ignoreCase, out object result)
+        {
+            ThrowIfTypeInvalid(enumType);
+
+            if(TryParseSingleTypeInternal(enumType, value, ignoreCase, out result))
+            {
+                return true;
+            }
+
+            var extensions = GetPseudoExtensionsToEnum(enumType);
+            foreach (var eType in extensions)
+            {
+                if (TryParseSingleTypeInternal(eType, value, ignoreCase, out result))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryParseSingleTypeInternal(Type enumType, string value, bool ignoreCase, out object result)
+        {
+            var comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
+            var names = Enum.GetNames(enumType);
+            foreach(var name in names)
+            {
+                if(name.Equals(value, comparison))
+                {
+                    result = Enum.Parse(enumType, name);
+                    return true;
+                }
+            }
+
+            result = default;
+            return false;
+        }
+
+        //TODO specific methods to support parsers and custom editors
+
+        private static void ThrowIfTypeInvalid(Type enumType)
+        {
+            if (!enumType.IsEnum)
+                throw new ArgumentException($"{enumType.Name} is not an enum");
+
+            if(enumType.GetCustomAttribute<PseudoExtensibleAttribute>() == null)
+                throw new ArgumentException($"{enumType.Name} is not a psuedo-extensible enum");
+        }
+
+        //TODO we will eventually implement caching/context
+        private static Type[] GetPseudoExtensionsToEnum(Type baseType)
+        {
+            var allExtendTypes = Assembly.GetExecutingAssembly()
+                .GetTypes()
+                .Where(t => t.IsDefined(typeof(PseudoExtendAttribute)))
+                .Where(t => t.GetCustomAttribute<PseudoExtendAttribute>().BaseType == baseType);
+            return allExtendTypes.ToArray();
+        }
     }
-
-
-    public object Value { get; set; }
 }
-
-//typed container class (?!)
-public class PEnum<T> : PEnum where T : Enum
-{
-    public T TypedValue
-    {
-        get
-        {
-            return (T)Enum.ToObject(typeof(T), Convert.ChangeType(Value, Enum.GetUnderlyingType(typeof(T))));
-        }
-        set
-        {
-            Value = Convert.ChangeType(value, Enum.GetUnderlyingType(typeof(T)));
-        }
-    }
-}
-
