@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using Newtonsoft.Json;
 
 namespace PseudoExtensibleEnum
 {
@@ -22,7 +23,34 @@ namespace PseudoExtensibleEnum
             const string testJson1 = "{}";
             const string testJson2 = "{\"test\": \"Something\"}";
             const string testJson3 = "{\"test\": \"SomethingElse\"}";
+            const string testJson4A = "{\"btest\": null}";
+            const string testJson4 = "{\"test\": null, \"btest\": null}";
+            const string testJson5 = "{\"test\": null}";
+
+            var testModel1 = JsonConvert.DeserializeObject<TestModel>(testJson1);
+            var testModel2 = JsonConvert.DeserializeObject<TestModel>(testJson2);
+            var testModel3 = JsonConvert.DeserializeObject<TestModel>(testJson3);
+            //var testModel4A = JsonConvert.DeserializeObject<TestModel>(testJson4A);
+            //var testModel4 = JsonConvert.DeserializeObject<TestModel>(testJson4);
+            //var testModel5 = JsonConvert.DeserializeObject<TestModel>(testJson5);
+
+            var testModel3Z = JsonConvert.DeserializeObject<TestModel2>(testJson3);
+            var testModel5Z = JsonConvert.DeserializeObject<TestModel2>(testJson5);
         }
+    }
+
+    public class TestModel
+    {
+        [JsonConverter(typeof(PEnumConverter), typeof(BaseEnum))]
+        public int Test { get; set; }
+
+        public BaseEnum BTest { get; set; }
+    }
+
+    public class TestModel2
+    {
+        [JsonConverter(typeof(PEnumConverter), typeof(BaseEnum))]
+        public int? Test { get; set; }
     }
 
     [PseudoExtensible]

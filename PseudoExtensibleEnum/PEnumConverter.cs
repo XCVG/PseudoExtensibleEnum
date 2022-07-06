@@ -31,19 +31,31 @@ namespace PseudoExtensibleEnum
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            string sValue = reader.ReadAsString();
+            string sValue = reader.Value as string;
+
+            Type nullableObjectType = Nullable.GetUnderlyingType(objectType);
 
             if (sValue == null)
             {
-                //TODO check serializer settings?
-                return existingValue;
+                if (objectType.IsValueType && nullableObjectType == null)
+                    throw new JsonSerializationException($"Error converting value {{null}} to type '{objectType.Name}'. Path '{reader.Path}'");
+
+                return null;
             }
 
             var type = BaseEnumType ?? objectType;
-            if (objectType.IsEnum)
-                return PxEnum.Parse(type, sValue, IgnoreCase);
 
-            return PxEnum.Parse(type, sValue, IgnoreCase);
+            if(nullableObjectType != null)
+            {
+                if (nullableObjectType.IsEnum)
+                    return Enum.ToObject(nullableObjectType, PxEnum.Parse(type, sValue, IgnoreCase));
+                return Convert.ChangeType(PxEnum.Parse(type, sValue, IgnoreCase), nullableObjectType);
+            }
+
+            if (objectType.IsEnum)
+                return Enum.ToObject(objectType, PxEnum.Parse(type, sValue, IgnoreCase));
+
+            return Convert.ChangeType(PxEnum.Parse(type, sValue, IgnoreCase), objectType);
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
