@@ -41,7 +41,7 @@ namespace PseudoExtensibleEnum
 
     public class TestModel
     {
-        [JsonConverter(typeof(PEnumConverter), typeof(BaseEnum))]
+        [JsonConverter(typeof(PxEnumConverter), typeof(BaseEnum))]
         public int Test { get; set; }
 
         public BaseEnum BTest { get; set; }
@@ -49,7 +49,7 @@ namespace PseudoExtensibleEnum
 
     public class TestModel2
     {
-        [JsonConverter(typeof(PEnumConverter), typeof(BaseEnum))]
+        [JsonConverter(typeof(PxEnumConverter), typeof(BaseEnum))]
         public int? Test { get; set; }
     }
 

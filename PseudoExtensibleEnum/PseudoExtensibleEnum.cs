@@ -184,20 +184,21 @@ namespace PseudoExtensibleEnum
             return false;
         }
 
-        //TODO specific methods to support parsers and custom editors
-
         private static void ThrowIfTypeInvalid(Type enumType)
         {
             if (!enumType.IsEnum)
                 throw new ArgumentException($"{enumType.Name} is not an enum");
 
-            if(enumType.GetCustomAttribute<PseudoExtensibleAttribute>() == null)
-                throw new ArgumentException($"{enumType.Name} is not a psuedo-extensible enum");
+            //if(enumType.GetCustomAttribute<PseudoExtensibleAttribute>() == null)
+            //    throw new ArgumentException($"{enumType.Name} is not a psuedo-extensible enum");
         }
 
         //TODO we will eventually implement caching/context
         private static Type[] GetPseudoExtensionsToEnum(Type baseType)
         {
+            if (baseType.GetCustomAttribute<PseudoExtensibleAttribute>() == null)
+                return new Type[] { };
+
             var allExtendTypes = Assembly.GetExecutingAssembly()
                 .GetTypes()
                 .Where(t => t.IsDefined(typeof(PseudoExtendAttribute)))
