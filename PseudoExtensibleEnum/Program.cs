@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 
@@ -26,6 +27,7 @@ namespace PseudoExtensibleEnum
             const string testJson4A = "{\"btest\": null}";
             const string testJson4 = "{\"test\": null, \"btest\": null}";
             const string testJson5 = "{\"test\": null}";
+            const string testJson6 = "{\"test\": 1}";
 
             var testModel1 = JsonConvert.DeserializeObject<TestModel>(testJson1);
             var testModel2 = JsonConvert.DeserializeObject<TestModel>(testJson2);
@@ -36,6 +38,20 @@ namespace PseudoExtensibleEnum
 
             var testModel3Z = JsonConvert.DeserializeObject<TestModel2>(testJson3);
             var testModel5Z = JsonConvert.DeserializeObject<TestModel2>(testJson5);
+
+            var testModel6 = JsonConvert.DeserializeObject<TestModel>(testJson6);
+
+            var testModelArray2 = new TestModelArray()
+            {
+                Test = new int[] { 1, 2, 128, 4 }
+            };
+            string array2out = JsonConvert.SerializeObject(testModelArray2);
+            Console.WriteLine(array2out);
+
+            const string testJsonArray1 = "{\"test\": [1, \"Third\", \"Second\", 128]}";
+            var testModelArray1 = JsonConvert.DeserializeObject<TestModelArray>(testJsonArray1);
+
+            
         }
     }
 
@@ -51,6 +67,12 @@ namespace PseudoExtensibleEnum
     {
         [JsonConverter(typeof(PxEnumConverter), typeof(BaseEnum))]
         public int? Test { get; set; }
+    }
+
+    public class TestModelArray
+    {
+        [JsonConverter(typeof(PxEnumArrayConverter), typeof(BaseEnum))]
+        public IList<int> Test { get; set; }
     }
 
     [PseudoExtensible]
