@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -270,17 +271,105 @@ namespace PseudoExtensibleEnum
 
         public override bool CanConvert(Type objectType)
         {
+            //must be IEnumerable<KeyValuePair<TKey, TValue>> and TKey must be enum or integral type
+
             throw new NotImplementedException();
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
-            throw new NotImplementedException();
+            if (reader.TokenType != JsonToken.StartObject)
+            {
+                throw new JsonSerializationException(""); //TODO details
+            }
+
+            if(!objectType.IsGenericType)
+            {
+                throw new JsonSerializationException(""); //TODO details
+            }
+
+            var keyType = objectType.GetGenericArguments()[0];
+            var nullableKeyType = Nullable.GetUnderlyingType(keyType);
+            var enumType = BaseEnumType ?? nullableKeyType ?? keyType;
+            var effectiveKeyType = nullableKeyType ?? keyType;
+            var parseKeyType = effectiveKeyType;
+
+            if (effectiveKeyType.IsEnum)
+            {
+                parseKeyType = Enum.GetUnderlyingType(effectiveKeyType);
+            }
+
+            var valueType = objectType.GetGenericArguments()[1];
+            var constructedDictionaryType = typeof(Dictionary<,>).MakeGenericType(keyType, valueType);
+            
+            var jObject = JObject.Load(reader);
+            IDictionary dictionary = (IDictionary)Activator.CreateInstance(constructedDictionaryType);
+
+            foreach(var item in jObject)
+            {
+                object key = null;
+                if(long.TryParse(item.Key, out long lResult))
+                {
+                    key = Convert.ChangeType(lResult, parseKeyType);
+                }
+                else if(ulong.TryParse(item.Key, out ulong uResult))
+                {
+                    key = Convert.ChangeType(uResult, parseKeyType);
+                }
+                else
+                {
+                    key = PxEnum.Parse(enumType, item.Key);
+                }
+
+                if(effectiveKeyType.IsEnum)
+                {
+                    key = Enum.ToObject(effectiveKeyType, key);
+                }
+                else
+                {
+                    key = Convert.ChangeType(key, effectiveKeyType);
+                }
+
+                dictionary.Add(key, item.Value.ToObject(valueType, serializer));
+            }
+
+            return dictionary;
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            throw new NotImplementedException();
+            if(value == null)
+            {
+                writer.WriteNull();
+                return;
+            }
+
+            var enumerable = value as IEnumerable;
+            if (enumerable == null)
+            {
+                throw new JsonSerializationException(""); //TODO details
+            }
+
+            serializer.Serialize(writer, value);
+            return;
+
+            /*
+            writer.WriteStartObject();
+
+            if (serializer.TypeNameHandling != TypeNameHandling.None)
+            {
+                writer.WritePropertyName("$type");
+                writer.WriteValue(string.Format("{0}, {1}", value.GetType().ToString(), value.GetType().Assembly.GetName().Name));
+            }
+
+            foreach(object item in enumerable)
+            {
+                object k = item.GetType().GetProperty("Key").GetValue(item);
+                object v = item.GetType().GetProperty("Value").GetValue(item);
+            }
+
+            writer.WriteEndObject();
+            */
         }
     }
 

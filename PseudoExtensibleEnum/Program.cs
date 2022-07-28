@@ -51,7 +51,20 @@ namespace PseudoExtensibleEnum
             const string testJsonArray1 = "{\"test\": [1, \"Third\", \"Second\", 128]}";
             var testModelArray1 = JsonConvert.DeserializeObject<TestModelArray>(testJsonArray1);
 
-            
+            var testSimpleObjectModel = new TestModelObject()
+            {
+                Test = new Dictionary<int, float>()
+                {
+                    { 2, 4.5f },
+                    { 3, 7.123f }
+                }
+            };
+            string simpleObjectOut = JsonConvert.SerializeObject(testSimpleObjectModel);
+            Console.WriteLine(simpleObjectOut);
+
+            const string testJsonSimpleObject = "{\"Test\": { \"2\": 2.5, \"Something\": 100, \"3\": 3.33, \"SomethingElse\": 200.823}}";
+            var testSimpleObject1 = JsonConvert.DeserializeObject<TestModelObject>(testJsonSimpleObject);
+
         }
     }
 
@@ -73,6 +86,18 @@ namespace PseudoExtensibleEnum
     {
         [JsonConverter(typeof(PxEnumArrayConverter), typeof(BaseEnum))]
         public IList<int> Test { get; set; }
+    }
+
+    public class TestModelObject
+    {
+        [JsonConverter(typeof(PxEnumObjectConverter), typeof(BaseEnum))]
+        public IReadOnlyDictionary<int, float> Test { get; set; }
+    }
+
+    public class TestModelComplexObject
+    {
+        [JsonConverter(typeof(PxEnumObjectConverter), typeof(BaseEnum))]
+        public IReadOnlyDictionary<int, object> Test { get; set; }
     }
 
     [PseudoExtensible]
