@@ -62,8 +62,13 @@ namespace PseudoExtensibleEnum
             string simpleObjectOut = JsonConvert.SerializeObject(testSimpleObjectModel);
             Console.WriteLine(simpleObjectOut);
 
+            var converter = new PxEnumObjectConverter(typeof(TestModelObject));
+            bool objectCanConvert = converter.CanConvert(testSimpleObjectModel.Test.GetType());
+
             const string testJsonSimpleObject = "{\"Test\": { \"2\": 2.5, \"Something\": 100, \"3\": 3.33, \"SomethingElse\": 200.823}}";
             var testSimpleObject1 = JsonConvert.DeserializeObject<TestModelObject>(testJsonSimpleObject);
+
+            //TODO complex object test
 
         }
     }

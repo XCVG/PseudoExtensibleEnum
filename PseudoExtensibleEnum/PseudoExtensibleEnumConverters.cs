@@ -149,7 +149,7 @@ namespace PseudoExtensibleEnum
 
             if (reader.TokenType != JsonToken.StartArray)
             {
-                throw new JsonSerializationException(""); //TODO details
+                throw new JsonSerializationException($"Error converting value {reader.Value} to type '{objectType.Name}'. Path '{reader.Path}'");
             }
             reader.Read();
 
@@ -198,7 +198,7 @@ namespace PseudoExtensibleEnum
                 }
                 else
                 {
-                    throw new JsonSerializationException(""); //TODO details
+                    throw new JsonSerializationException($"Error converting value {rawItem} to type '{objectType.Name}'. Path '{reader.Path}'");
                 }
             }
 
@@ -233,7 +233,7 @@ namespace PseudoExtensibleEnum
                 return set;
             }
 
-            throw new JsonSerializationException(""); //TODO details
+            throw new JsonSerializationException($"Error converting value {parsedItems} to type '{objectType.Name}'. Path '{reader.Path}'");
         }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
@@ -271,21 +271,43 @@ namespace PseudoExtensibleEnum
 
         public override bool CanConvert(Type objectType)
         {
-            //must be IEnumerable<KeyValuePair<TKey, TValue>> and TKey must be enum or integral type
+            if(!objectType.IsGenericType)
+            {
+                return false;
+            }
 
-            throw new NotImplementedException();
+            var interfaces = objectType.GetInterfaces();
+            foreach (var @interface in interfaces)
+            {
+                if(@interface.IsGenericType && @interface.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                {
+                    var elementType = @interface.GetGenericArguments()[0];
+                    if(elementType.IsGenericType && elementType.GetGenericTypeDefinition() == typeof(KeyValuePair<,>))
+                    {
+                        var keyType = elementType.GetGenericArguments()[0];
+                        var keyUnderlyingType = Nullable.GetUnderlyingType(keyType); //is this even possible?
+                        keyType = keyUnderlyingType ?? keyType;
+                        if(keyType.IsEnum || PxEnumConverterUtils.IsIntegralType(keyType))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             if (reader.TokenType != JsonToken.StartObject)
             {
-                throw new JsonSerializationException(""); //TODO details
+                throw new JsonSerializationException($"Error converting value {reader.Value} to type '{objectType.Name}'. Path '{reader.Path}'");
             }
 
             if(!objectType.IsGenericType)
             {
-                throw new JsonSerializationException(""); //TODO details
+                throw new JsonSerializationException($"Error converting value {reader.Value} to type '{objectType.Name}'. Path '{reader.Path}'");
             }
 
             var keyType = objectType.GetGenericArguments()[0];
@@ -344,32 +366,8 @@ namespace PseudoExtensibleEnum
                 return;
             }
 
-            var enumerable = value as IEnumerable;
-            if (enumerable == null)
-            {
-                throw new JsonSerializationException(""); //TODO details
-            }
-
             serializer.Serialize(writer, value);
             return;
-
-            /*
-            writer.WriteStartObject();
-
-            if (serializer.TypeNameHandling != TypeNameHandling.None)
-            {
-                writer.WritePropertyName("$type");
-                writer.WriteValue(string.Format("{0}, {1}", value.GetType().ToString(), value.GetType().Assembly.GetName().Name));
-            }
-
-            foreach(object item in enumerable)
-            {
-                object k = item.GetType().GetProperty("Key").GetValue(item);
-                object v = item.GetType().GetProperty("Value").GetValue(item);
-            }
-
-            writer.WriteEndObject();
-            */
         }
     }
 
