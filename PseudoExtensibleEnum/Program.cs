@@ -9,7 +9,11 @@ namespace PseudoExtensibleEnum
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");            
+            Console.WriteLine("Hello World!");
+
+            //test context creation
+            PxEnum.RecreateCurrentContext();
+            PxEnum.CurrentContext.LoadTypes(System.Reflection.Assembly.GetEntryAssembly());
 
             Console.WriteLine(string.Join(",", PxEnum.GetNames(typeof(BaseEnum))));
             Console.WriteLine(string.Join(",", PxEnum.GetValues(typeof(BaseEnum)).Cast<int>().Select(i => i.ToString())));

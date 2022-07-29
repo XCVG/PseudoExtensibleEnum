@@ -34,6 +34,15 @@ namespace PseudoExtensibleEnum
     /// </summary>
     public static class PxEnum
     {
+        public static PseudoExtensibleEnumContext CurrentContext { get; internal set; }
+
+        /// <summary>
+        /// Creates or recreates the current PseudoExtensibleEnumContext
+        /// </summary>
+        public static void RecreateCurrentContext()
+        {
+            CurrentContext = new PseudoExtensibleEnumContext();
+        }
 
         //similar API to Enum static methods
 
@@ -226,11 +235,15 @@ namespace PseudoExtensibleEnum
             //    throw new ArgumentException($"{enumType.Name} is not a psuedo-extensible enum");
         }
 
-        //TODO we will eventually implement caching/context
         private static Type[] GetPseudoExtensionsToEnum(Type baseType)
         {
             if (baseType.GetCustomAttribute<PseudoExtensibleAttribute>() == null)
                 return new Type[] { };
+
+            if(CurrentContext != null)
+            {
+                return CurrentContext.GetPseudoExtensionsToEnum(baseType);
+            }
 
             var allExtendTypes = Assembly.GetExecutingAssembly()
                 .GetTypes()
