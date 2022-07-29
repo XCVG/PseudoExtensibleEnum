@@ -6,12 +6,18 @@ using System.Reflection;
 
 namespace PseudoExtensibleEnum
 {
+    /// <summary>
+    /// Defines an enum as able to be pseudo-extended
+    /// </summary>
     [AttributeUsage(AttributeTargets.Enum)]
     public class PseudoExtensibleAttribute : Attribute
     {
 
     }
 
+    /// <summary>
+    /// Defines an enum as a pseudo-extension to a base enum
+    /// </summary>
     [AttributeUsage(AttributeTargets.Enum)]
     public class PseudoExtendAttribute : Attribute
     {
@@ -23,11 +29,17 @@ namespace PseudoExtensibleEnum
         }
     }
 
+    /// <summary>
+    /// Utility methods for manipulating pseudo-extensible enums
+    /// </summary>
     public static class PxEnum
     {
 
         //similar API to Enum static methods
 
+        /// <summary>
+        /// Retrieves the name of the constant in the specified enumeration or its pseudo-extensions that has the specified value.
+        /// </summary>
         public static string GetName(Type enumType, object value)
         {
             ThrowIfTypeInvalid(enumType);
@@ -47,6 +59,9 @@ namespace PseudoExtensibleEnum
             return null;
         }
 
+        /// <summary>
+        /// Retrieves an array of the names of the constants in a specified enumeration and its pseudo-extensions.
+        /// </summary>
         public static string[] GetNames(Type enumType)
         {
             ThrowIfTypeInvalid(enumType);
@@ -64,6 +79,9 @@ namespace PseudoExtensibleEnum
             return names.ToArray();
         }
 
+        /// <summary>
+        /// Retrieves an array of the values of the constants in a specified enumeration and its pseudo-extensions.
+        /// </summary>
         public static Array GetValues(Type enumType)
         {
             ThrowIfTypeInvalid(enumType);
@@ -96,6 +114,9 @@ namespace PseudoExtensibleEnum
             return valuesArray;
         }
 
+        /// <summary>
+        /// Returns a Boolean telling whether a given integral value, or its name as a string, exists in a specified enumeration or its pseudo-extensions.
+        /// </summary>
         public static bool IsDefined(Type enumType, object value)
         {
             ThrowIfTypeInvalid(enumType);
@@ -113,11 +134,17 @@ namespace PseudoExtensibleEnum
             return false;
         }
 
+        /// <summary>
+        /// Converts the string representation of the name or numeric value of one or more enumerated constants to an equivalent enumerated object of either the base or pseudo-extended type.
+        /// </summary>
         public static object Parse(Type enumType, string value)
         {
             return Parse(enumType, value, true);
         }
 
+        /// <summary>
+        /// Converts the string representation of the name or numeric value of one or more enumerated constants to an equivalent enumerated object of either the base or pseudo-extended type.
+        /// </summary>
         public static object Parse(Type enumType, string value, bool ignoreCase)
         {
             if(TryParseInternal(enumType, value, ignoreCase, out object result))
@@ -128,11 +155,17 @@ namespace PseudoExtensibleEnum
             throw new ArgumentException();
         }
 
+        /// <summary>
+        /// Converts the string representation of the name or numeric value of one or more enumerated constants to an equivalent enumerated object of either the base or pseudo-extended type.
+        /// </summary>
         public static bool TryParse<TEnum>(string value, out TEnum result) where TEnum : struct
         {
             return TryParse(value, true, out result);
         }
 
+        /// <summary>
+        /// Converts the string representation of the name or numeric value of one or more enumerated constants to an equivalent enumerated object of either the base or pseudo-extended type.
+        /// </summary>
         public static bool TryParse<TEnum>(string value, bool ignoreCase, out TEnum result) where TEnum : struct
         {
             if(TryParseInternal(typeof(TEnum), value, ignoreCase, out object rawResult))

@@ -8,6 +8,9 @@ using System.Reflection;
 
 namespace PseudoExtensibleEnum
 {
+    /// <summary>
+    /// Converter for pseudo-extensible enums. Can convert from numeric or string representations of either the base or pseudo-extended enums, and can convert to either enum or backing type. Will always serialize to numeric values.
+    /// </summary>
     public class PxEnumConverter : JsonConverter
     {
         private Type BaseEnumType;
@@ -90,6 +93,9 @@ namespace PseudoExtensibleEnum
         }
     }
 
+    /// <summary>
+    /// Converters for arrays of pseudo-extensible enums. Can convert from numeric or string representations of either the base or pseudo-extended enums. Can convert to arrays, lists, and sets. Will always serialize to arrays of numeric values.
+    /// </summary>
     public class PxEnumArrayConverter : JsonConverter
     {
         private Type BaseEnumType;
@@ -248,6 +254,9 @@ namespace PseudoExtensibleEnum
         }
     }
 
+    /// <summary>
+    /// Converters for objects with keys that are pseudo-extensible enums. Can convert from numeric or string representations of either the base or pseudo-extended enums. Always returns a Dictionary. Will always serialize to numeric values as string keys.
+    /// </summary>
     public class PxEnumObjectConverter : JsonConverter
     {
         private Type BaseEnumType;
@@ -371,6 +380,9 @@ namespace PseudoExtensibleEnum
         }
     }
 
+    /// <summary>
+    /// Helper methods for internal use only.
+    /// </summary>
     internal static class PxEnumConverterUtils
     {
         public static bool IsIntegralType(Type type)
