@@ -54,11 +54,11 @@ namespace PseudoExtensibleEnum
             ThrowIfTypeInvalid(enumType);
 
             var baseResult = Enum.GetName(enumType, value);
-            if(baseResult != null)
+            if (baseResult != null)
                 return baseResult;
 
             var extensions = GetPseudoExtensionsToEnum(enumType);
-            foreach(var eType in extensions)
+            foreach (var eType in extensions)
             {
                 var eResult = Enum.GetName(eType, value);
                 if (eResult != null)
@@ -99,7 +99,7 @@ namespace PseudoExtensibleEnum
             IList values = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(underlyingType));
 
             var baseValues = Enum.GetValues(enumType);
-            for(int i = 0; i < baseValues.Length; i++)
+            for (int i = 0; i < baseValues.Length; i++)
             {
                 values.Add(baseValues.GetValue(i));
             }
@@ -115,12 +115,46 @@ namespace PseudoExtensibleEnum
             }
 
             Array valuesArray = Array.CreateInstance(underlyingType, values.Count);
-            for(int i = 0; i < values.Count; i++)
+            for (int i = 0; i < values.Count; i++)
             {
-                valuesArray.SetValue(values[i], i); 
+                valuesArray.SetValue(values[i], i);
             }
 
             return valuesArray;
+        }
+
+        /// <summary>
+        /// Retrieves a value-name collection of the constants in a specified enumeration and its pseudo-extensions.
+        /// </summary>
+        /// <remarks>
+        /// Intended for the custom property drawer in CommonCore
+        /// </remarks>
+        public static List<KeyValuePair<long, string>> GetValueNameCollection(Type enumType)
+        {
+            ThrowIfTypeInvalid(enumType);
+
+            var underlyingType = Enum.GetUnderlyingType(enumType);
+            List<KeyValuePair<long, string>> result = new List<KeyValuePair<long, string>>();
+
+            var baseValues = Enum.GetValues(enumType);
+            for (int i = 0; i < baseValues.Length; i++)
+            {
+                object val = baseValues.GetValue(i);
+                result.Add(new KeyValuePair<long, string>(Convert.ToInt64(val), Enum.GetName(enumType, val)));
+            }
+
+            var extensions = GetPseudoExtensionsToEnum(enumType);
+            foreach (var eType in extensions)
+            {
+                var eValues = Enum.GetValues(eType);
+                for (int i = 0; i < eValues.Length; i++)
+                {
+                    object val = eValues.GetValue(i);
+                    result.Add(new KeyValuePair<long, string>(Convert.ToInt64(val), Enum.GetName(eType, val)));
+                }
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -156,7 +190,7 @@ namespace PseudoExtensibleEnum
         /// </summary>
         public static object Parse(Type enumType, string value, bool ignoreCase)
         {
-            if(TryParseInternal(enumType, value, ignoreCase, out object result))
+            if (TryParseInternal(enumType, value, ignoreCase, out object result))
             {
                 return result;
             }
@@ -177,7 +211,7 @@ namespace PseudoExtensibleEnum
         /// </summary>
         public static bool TryParse<TEnum>(string value, bool ignoreCase, out TEnum result) where TEnum : struct
         {
-            if(TryParseInternal(typeof(TEnum), value, ignoreCase, out object rawResult))
+            if (TryParseInternal(typeof(TEnum), value, ignoreCase, out object rawResult))
             {
                 result = (TEnum)rawResult;
                 return true;
@@ -191,7 +225,7 @@ namespace PseudoExtensibleEnum
         {
             ThrowIfTypeInvalid(enumType);
 
-            if(TryParseSingleTypeInternal(enumType, value, ignoreCase, out result))
+            if (TryParseSingleTypeInternal(enumType, value, ignoreCase, out result))
             {
                 return true;
             }
@@ -213,9 +247,9 @@ namespace PseudoExtensibleEnum
             var comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
             var names = Enum.GetNames(enumType);
-            foreach(var name in names)
+            foreach (var name in names)
             {
-                if(name.Equals(value, comparison))
+                if (name.Equals(value, comparison))
                 {
                     result = Enum.Parse(enumType, name);
                     return true;
@@ -238,17 +272,29 @@ namespace PseudoExtensibleEnum
         private static Type[] GetPseudoExtensionsToEnum(Type baseType)
         {
             if (baseType.GetCustomAttribute<PseudoExtensibleAttribute>() == null)
+            {
                 return new Type[] { };
+            }
 
-            if(CurrentContext != null)
+            if (CurrentContext != null)
             {
                 return CurrentContext.GetPseudoExtensionsToEnum(baseType);
             }
 
+#if UNITY_2017_1_OR_NEWER
+            var allExtendTypes = AppDomain.CurrentDomain.GetAssemblies()
+                .Where(a => !(a.FullName.StartsWith("Unity") || a.FullName.StartsWith("System") || a.FullName.StartsWith("netstandard") ||
+                            a.FullName.StartsWith("mscorlib") || a.FullName.StartsWith("mono", StringComparison.OrdinalIgnoreCase) ||
+                            a.FullName.StartsWith("Boo") || a.FullName.StartsWith("I18N")))
+                .SelectMany((assembly) => assembly.GetTypes())
+                .Where(t => t.IsDefined(typeof(PseudoExtendAttribute)))
+                .Where(t => t.GetCustomAttribute<PseudoExtendAttribute>().BaseType == baseType);
+#else
             var allExtendTypes = Assembly.GetExecutingAssembly()
                 .GetTypes()
                 .Where(t => t.IsDefined(typeof(PseudoExtendAttribute)))
                 .Where(t => t.GetCustomAttribute<PseudoExtendAttribute>().BaseType == baseType);
+#endif
             return allExtendTypes.ToArray();
         }
     }
