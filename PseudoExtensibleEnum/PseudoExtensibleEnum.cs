@@ -129,7 +129,7 @@ namespace PseudoExtensibleEnum
         /// <remarks>
         /// Intended for the custom property drawer in CommonCore
         /// </remarks>
-        public static List<KeyValuePair<long, string>> GetValueNameCollection(Type enumType)
+        public static List<KeyValuePair<long, string>> GetValueNameCollection(Type enumType, bool useContext)
         {
             ThrowIfTypeInvalid(enumType);
 
@@ -269,14 +269,14 @@ namespace PseudoExtensibleEnum
             //    throw new ArgumentException($"{enumType.Name} is not a psuedo-extensible enum");
         }
 
-        private static Type[] GetPseudoExtensionsToEnum(Type baseType)
+        private static Type[] GetPseudoExtensionsToEnum(Type baseType, bool useContext = false)
         {
             if (baseType.GetCustomAttribute<PseudoExtensibleAttribute>() == null)
             {
                 return new Type[] { };
             }
 
-            if (CurrentContext != null)
+            if (useContext && CurrentContext != null)
             {
                 return CurrentContext.GetPseudoExtensionsToEnum(baseType);
             }
