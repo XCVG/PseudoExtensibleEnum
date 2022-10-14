@@ -54,11 +54,11 @@ namespace PseudoExtensibleEnum
             ThrowIfTypeInvalid(enumType);
 
             var baseResult = Enum.GetName(enumType, value);
-            if (baseResult != null)
+            if(baseResult != null)
                 return baseResult;
 
             var extensions = GetPseudoExtensionsToEnum(enumType);
-            foreach (var eType in extensions)
+            foreach(var eType in extensions)
             {
                 var eResult = Enum.GetName(eType, value);
                 if (eResult != null)
@@ -99,7 +99,7 @@ namespace PseudoExtensibleEnum
             IList values = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(underlyingType));
 
             var baseValues = Enum.GetValues(enumType);
-            for (int i = 0; i < baseValues.Length; i++)
+            for(int i = 0; i < baseValues.Length; i++)
             {
                 values.Add(baseValues.GetValue(i));
             }
@@ -115,9 +115,9 @@ namespace PseudoExtensibleEnum
             }
 
             Array valuesArray = Array.CreateInstance(underlyingType, values.Count);
-            for (int i = 0; i < values.Count; i++)
+            for(int i = 0; i < values.Count; i++)
             {
-                valuesArray.SetValue(values[i], i);
+                valuesArray.SetValue(values[i], i); 
             }
 
             return valuesArray;
@@ -190,7 +190,7 @@ namespace PseudoExtensibleEnum
         /// </summary>
         public static object Parse(Type enumType, string value, bool ignoreCase)
         {
-            if (TryParseInternal(enumType, value, ignoreCase, out object result))
+            if(TryParseInternal(enumType, value, ignoreCase, out object result))
             {
                 return result;
             }
@@ -211,7 +211,7 @@ namespace PseudoExtensibleEnum
         /// </summary>
         public static bool TryParse<TEnum>(string value, bool ignoreCase, out TEnum result) where TEnum : struct
         {
-            if (TryParseInternal(typeof(TEnum), value, ignoreCase, out object rawResult))
+            if(TryParseInternal(typeof(TEnum), value, ignoreCase, out object rawResult))
             {
                 result = (TEnum)rawResult;
                 return true;
@@ -225,7 +225,7 @@ namespace PseudoExtensibleEnum
         {
             ThrowIfTypeInvalid(enumType);
 
-            if (TryParseSingleTypeInternal(enumType, value, ignoreCase, out result))
+            if(TryParseSingleTypeInternal(enumType, value, ignoreCase, out result))
             {
                 return true;
             }
@@ -247,9 +247,9 @@ namespace PseudoExtensibleEnum
             var comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
             var names = Enum.GetNames(enumType);
-            foreach (var name in names)
+            foreach(var name in names)
             {
-                if (name.Equals(value, comparison))
+                if(name.Equals(value, comparison))
                 {
                     result = Enum.Parse(enumType, name);
                     return true;
@@ -276,7 +276,7 @@ namespace PseudoExtensibleEnum
                 return new Type[] { };
             }
 
-            if (useContext && CurrentContext != null)
+            if(useContext && CurrentContext != null)
             {
                 return CurrentContext.GetPseudoExtensionsToEnum(baseType);
             }
