@@ -74,6 +74,15 @@ namespace PseudoExtensibleEnum
 
             //TODO complex object test
 
+            //"skip unknown" tests
+            const string testJsonArrayUnknownKeys = "{\"test\": [1, \"Third\", \"Second\", 128, \"AAAAUnknown\", \"BBBUnknown\"]}";
+            var testModelArrayUnknownKeys = JsonConvert.DeserializeObject<TestModelArraySkipUnknown>(testJsonArrayUnknownKeys);
+
+            const string testJsonSimpleObjectUnknownKeys = "{\"Test\": { \"2\": 2.5, \"Something\": 100, \"3\": 3.33, \"SomethingElse\": 200.823, \"AAAAUnknown\": 105}}";
+            var testSimpleObject2 = JsonConvert.DeserializeObject<TestModelObjectSkipUnknown>(testJsonSimpleObjectUnknownKeys);
+
+            Console.WriteLine("all passed!");
+
         }
     }
 
@@ -107,6 +116,17 @@ namespace PseudoExtensibleEnum
     {
         [JsonConverter(typeof(PxEnumObjectConverter), typeof(BaseEnum))]
         public IReadOnlyDictionary<int, object> Test { get; set; }
+    }
+    public class TestModelArraySkipUnknown
+    {
+        [JsonConverter(typeof(PxEnumArrayConverter), typeof(BaseEnum), true, true)]
+        public IList<int> Test { get; set; }
+    }
+
+    public class TestModelObjectSkipUnknown
+    {
+        [JsonConverter(typeof(PxEnumObjectConverter), typeof(BaseEnum), true, true)]
+        public IReadOnlyDictionary<int, float> Test { get; set; }
     }
 
     [PseudoExtensible]
